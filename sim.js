@@ -162,6 +162,7 @@ class Sim {
     this.ball.spd = spd;
     this.ball.travel = 0; this.ball.maxTravel = Math.min(d * 1.35 + 3, isShot ? 200 : KICK_RANGE * 1.4);
     this.ball.isShot = isShot; this.ball.targetIdx = targetIdx;
+    this.ball.kickerIdx = this.ball.holder; // no self-pass: kicker can't re-catch own ball in flight
     this.ball.holder = -1;
     if (isShot) { this.stats.shots++; this.stats.shotDistSum += d; }
     else this.stats.passAttempt++;
@@ -415,6 +416,7 @@ class Sim {
     // reception by any teammate
     if (!b.isShot && b.travel > 2.5) {
       for (let i = 0; i < this.players.length; i++) {
+        if (i === b.kickerIdx) continue;
         if (dist(this.players[i].x, this.players[i].y, b.x, b.y) < 3.0) { this.receive(i); return; }
       }
     }
@@ -428,6 +430,7 @@ class Sim {
   receive(i) {
     const b = this.ball, p = this.players[i];
     b.state = 'held'; b.holder = i; this.holdTicks = 0;
+    if (i === b.kickerIdx) return; // recovering own loose ball = dribble, not a completed pass
     this.stats.passComplete++;
     // ACO: successful pass lays pheromone, weighted by field progress
     const w = 0.12 + 0.25 * (b.x / W);
