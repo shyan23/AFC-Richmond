@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shaolin Swarm Soccer — Population-Based Approach (Lab 04)</title>
+<style>
+  :root {
+    --bg: #101613; --panel: #18211c; --panel2: #1e2a23; --line: #2c3b32;
+    --ink: #e8f0ea; --dim: #93a89b; --gold: #e3b341; --red: #e06a5a; --blue: #6ab7e0;
+    --green: #4caf7d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, sans-serif; }
+  header { padding: 18px 24px 10px; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 20px; letter-spacing: .5px; }
+  header h1 span { color: var(--gold); }
+  header p { color: var(--dim); font-size: 13px; }
+  .layout { max-width: 1100px; margin: 0 auto; padding: 16px 24px; }
+  .stage { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  canvas.pitch { width: 100%; border-radius: 6px; display: block; background: #17301f; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 12px 0 4px; }
+  button { background: var(--panel2); color: var(--ink); border: 1px solid var(--line); border-radius: 6px;
+           padding: 7px 14px; cursor: pointer; font-size: 13px; }
+  button:hover { border-color: var(--gold); }
+  button.primary { background: var(--gold); color: #1c1608; font-weight: 600; border-color: var(--gold); }
+  button.active { background: var(--green); color: #06130c; border-color: var(--green); font-weight: 600; }
+  .sliders { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 16px; margin-top: 10px; }
+  .sliders label { font-size: 12px; color: var(--dim); display: block; }
+  .sliders label b { color: var(--ink); float: right; font-weight: 600; }
+  input[type=range] { width: 100%; accent-color: var(--gold); }
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+  .metric { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  .metric .v { font-size: 20px; font-weight: 700; color: var(--gold); }
+  .metric .k { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: .06em; }
+  .bench { margin-top: 14px; }
+  canvas.chart { width: 100%; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; }
+  .flash { font-weight: 700; margin-left: 8px; min-width: 90px; display: inline-block; }
+  .speedgrp { display: inline-flex; gap: 4px; align-items: center; }
+  .speedgrp .lbl { color: var(--dim); font-size: 12px; margin-right: 2px; }
+  .speedgrp button { padding: 6px 9px; font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>SHAOLIN <span>SWARM</span> SOCCER — bad players, good team</h1>
+  <p>Population-based approach: Boids (1987) + Ant Colony stigmergy (1992) + Particle Swarm (1995) turn ten hopeless kickers into a scoring machine.</p>
+</header>
+
+<div class="layout">
+  <div class="stage">
+    <canvas id="pitch" class="pitch" width="1000" height="640"></canvas>
+    <div class="controls">
+      <button id="modeSwarm" class="active">Swarm mode</button>
+      <button id="modeSelfish">Selfish mode</button>
+      <button id="pause">Pause</button>
+      <button id="heat" class="active">Pheromone heatmap</button>
+      <span class="speedgrp" id="speedGrp">
+        <span class="lbl">speed</span>
+        <button data-mult="1" class="active">1x</button>
+        <button data-mult="1.5">1.5x</button>
+        <button data-mult="1.75">1.75x</button>
+        <button data-mult="2">2x</button>
+        <button data-mult="3">3x</button>
+        <button data-mult="4">4x</button>
+      </span>
+      <button id="reset">Reset</button>
+      <span id="flash" class="flash"></span>
+    </div>
+    <div class="sliders">
+      <label>Team size <b id="vPlayers">10</b><input id="sPlayers" type="range" min="4" max="14" value="10"></label>
+      <label>Kick noise <b id="vNoise">1.0</b><input id="sNoise" type="range" min="0" max="200" value="100"></label>
+      <label>Vision radius <b id="vVision">15</b><input id="sVision" type="range" min="6" max="40" value="15"></label>
+      <label>Evaporation <b id="vEvap">0.0015</b><input id="sEvap" type="range" min="0" max="100" value="15"></label>
+      <label>Defender skill <b id="vDef">1.0</b><input id="sDef" type="range" min="40" max="160" value="100"></label>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="v" id="mGoals">0</div><div class="k">goals</div></div>
+      <div class="metric"><div class="v" id="mEps">0</div><div class="k">episodes</div></div>
+      <div class="metric"><div class="v" id="mRate">0%</div><div class="k">goal rate</div></div>
+      <div class="metric"><div class="v" id="mPass">–</div><div class="k">pass completion</div></div>
+      <div class="metric"><div class="v" id="mShots">0</div><div class="k">shots (on target)</div></div>
+      <div class="metric"><div class="v" id="mDist">–</div><div class="k">avg shot dist</div></div>
+      <div class="metric"><div class="v" id="mSaves">0</div><div class="k">keeper saves</div></div>
+      <div class="metric"><div class="v" id="mPoss">0</div><div class="k">possession ticks</div></div>
+    </div>
+    <div class="bench">
+      <button id="benchBtn" class="primary">Run benchmark: Selfish vs Swarm (300 episodes each)</button>
+      <span id="benchStatus" style="color:var(--dim);font-size:12px;margin-left:8px"></span>
+      <canvas id="chart" class="chart" width="1000" height="230" style="margin-top:8px"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<script src="sim.js"></script>
+<script>
+(() => {
+'use strict';
+const { Sim, W, H, GOAL_Y1, GOAL_Y2, PH_COLS, PH_ROWS } = window.SSS;
+const cv = document.getElementById('pitch'), cx = cv.getContext('2d');
+const SX = cv.width / W, SY = cv.height / H;
+
+const ui = {
+  mode: 'swarm', paused: false, heat: true, mult: 1, stepAcc: 0,
+  nPlayers: 10, kickNoise: 1.0, vision: 15, evap: 0.0015, defSkill: 1.0,
+  flashT: 0, flashMsg: '', flashCol: '#fff',
+};
+let sim = makeSim();
+
+function makeSim() {
+  return new Sim({
+    mode: ui.mode, seed: 42, nPlayers: ui.nPlayers, kickNoise: ui.kickNoise,
+    vision: ui.vision, evap: ui.evap, defSkill: ui.defSkill,
+  });
+}
+function rebuild() { sim = makeSim(); }
+
+// ---------- controls ----------
+const $ = id => document.getElementById(id);
+function setMode(m) {
+  ui.mode = m; rebuild();
+  $('modeSwarm').classList.toggle('active', m === 'swarm');
+  $('modeSelfish').classList.toggle('active', m === 'selfish');
+}
+$('modeSwarm').onclick = () => setMode('swarm');
+$('modeSelfish').onclick = () => setMode('selfish');
+$('pause').onclick = () => { ui.paused = !ui.paused; $('pause').textContent = ui.paused ? 'Resume' : 'Pause'; };
+$('heat').onclick = () => { ui.heat = !ui.heat; $('heat').classList.toggle('active', ui.heat); };
+$('reset').onclick = rebuild;
+$('speedGrp').querySelectorAll('button').forEach(b => {
+  b.onclick = () => {
+    ui.mult = +b.dataset.mult;
+    $('speedGrp').querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
+  };
+});
+
+function slider(id, valId, map, key, fmt) {
+  $(id).oninput = e => {
+    ui[key] = map(+e.target.value);
+    $(valId).textContent = fmt(ui[key]);
+    rebuild();
+  };
+}
+slider('sPlayers', 'vPlayers', v => v, 'nPlayers', v => v);
+slider('sNoise', 'vNoise', v => v / 100, 'kickNoise', v => v.toFixed(1));
+slider('sVision', 'vVision', v => v, 'vision', v => v);
+slider('sEvap', 'vEvap', v => v / 10000, 'evap', v => v.toFixed(4));
+slider('sDef', 'vDef', v => v / 100, 'defSkill', v => v.toFixed(1));
+
+// ---------- drawing ----------
+function drawPitch() {
+  cx.fillStyle = '#17301f'; cx.fillRect(0, 0, cv.width, cv.height);
+  // mow stripes
+  for (let i = 0; i < 10; i++) {
+    if (i % 2) continue;
+    cx.fillStyle = 'rgba(255,255,255,0.025)';
+    cx.fillRect(i * cv.width / 10, 0, cv.width / 10, cv.height);
+  }
+  if (ui.heat && ui.mode === 'swarm') {
+    const cw = cv.width / PH_COLS, ch = cv.height / PH_ROWS;
+    for (let r = 0; r < PH_ROWS; r++) for (let c = 0; c < PH_COLS; c++) {
+      const v = sim.pher[r * PH_COLS + c];
+      if (v < 0.02) continue;
+      cx.fillStyle = `rgba(227,179,65,${Math.min(0.55, v * 0.35)})`;
+      cx.fillRect(c * cw, r * ch, cw, ch);
+    }
+  }
+  // lines
+  cx.strokeStyle = 'rgba(255,255,255,0.35)'; cx.lineWidth = 2;
+  cx.strokeRect(1, 1, cv.width - 2, cv.height - 2);
+  cx.beginPath(); cx.moveTo(cv.width / 2, 0); cx.lineTo(cv.width / 2, cv.height); cx.stroke();
+  cx.beginPath(); cx.arc(cv.width / 2, cv.height / 2, 60, 0, Math.PI * 2); cx.stroke();
+  // penalty box + goal
+  cx.strokeRect(cv.width - 16 * SX, (GOAL_Y1 - 6) * SY, 16 * SX, (GOAL_Y2 - GOAL_Y1 + 12) * SY);
+  cx.fillStyle = '#e8f0ea';
+  cx.fillRect(cv.width - 4, GOAL_Y1 * SY, 4, (GOAL_Y2 - GOAL_Y1) * SY);
+
+  // players
+  sim.players.forEach((p, i) => {
+    const runner = (i % 2) === 1;
+    cx.fillStyle = i === sim.ball.holder ? '#ffe08a' : runner ? '#e3b341' : '#c98f2a';
+    cx.beginPath(); cx.arc(p.x * SX, p.y * SY, i === sim.ball.holder ? 8 : 6, 0, Math.PI * 2); cx.fill();
+    if (runner) { cx.strokeStyle = '#fff5d6'; cx.lineWidth = 1.5; cx.stroke(); }
+  });
+  // defenders + keeper
+  sim.defenders.forEach(d => {
+    cx.fillStyle = '#e06a5a';
+    cx.beginPath(); cx.arc(d.x * SX, d.y * SY, 7, 0, Math.PI * 2); cx.fill();
+  });
+  cx.fillStyle = '#b23a5a';
+  cx.beginPath(); cx.arc(sim.keeper.x * SX, sim.keeper.y * SY, 7, 0, Math.PI * 2); cx.fill();
+  // ball
+  cx.fillStyle = '#ffffff';
+  cx.beginPath(); cx.arc(sim.ball.x * SX, sim.ball.y * SY, 4.5, 0, Math.PI * 2); cx.fill();
+  cx.strokeStyle = '#111'; cx.lineWidth = 1; cx.stroke();
+}
+
+function updateMetrics() {
+  const s = sim.stats;
+  $('mGoals').textContent = s.goals;
+  $('mEps').textContent = s.episodes;
+  $('mRate').textContent = s.episodes ? (100 * s.goals / s.episodes).toFixed(1) + '%' : '0%';
+  $('mPass').textContent = s.passAttempt ? (100 * s.passComplete / s.passAttempt).toFixed(1) + '%' : '–';
+  $('mShots').textContent = `${s.shots} (${s.shotsOnTarget})`;
+  $('mDist').textContent = s.shots ? (s.shotDistSum / s.shots).toFixed(1) : '–';
+  $('mSaves').textContent = s.saves;
+  $('mPoss').textContent = s.possessionTicks;
+}
+
+function flash(msg, col) { ui.flashMsg = msg; ui.flashCol = col; ui.flashT = 90; }
+
+function frame() {
+  if (!ui.paused) {
+    // 1x = 4 sim ticks per frame; fractional multipliers accumulate
+    ui.stepAcc += 4 * ui.mult;
+    const steps = Math.floor(ui.stepAcc);
+    ui.stepAcc -= steps;
+    for (let k = 0; k < steps; k++) {
+      sim.step();
+      if (sim.events.includes('goal')) flash('⚽ GOAL!', '#e3b341');
+      else if (sim.events.includes('save')) flash('🧤 SAVE', '#6ab7e0');
+      else if (sim.events.includes('tackle')) flash('✖ tackled', '#e06a5a');
+      else if (sim.events.includes('intercept')) flash('✖ intercepted', '#e06a5a');
+    }
+  }
+  drawPitch();
+  updateMetrics();
+  const f = $('flash');
+  if (ui.flashT > 0) { ui.flashT--; f.textContent = ui.flashMsg; f.style.color = ui.flashCol; }
+  else f.textContent = '';
+  requestAnimationFrame(frame);
+}
+
+// ---------- benchmark chart ----------
+const chart = $('chart'), chx = chart.getContext('2d');
+function drawChart(res) {
+  chx.fillStyle = '#1e2a23'; chx.fillRect(0, 0, chart.width, chart.height);
+  chx.font = '13px system-ui'; chx.textBaseline = 'middle';
+  const rows = [
+    ['Goals / 300 eps', res.selfish.goals, res.swarm.goals],
+    ['Shots', res.selfish.shots, res.swarm.shots],
+    ['Shots on target', res.selfish.shotsOnTarget, res.swarm.shotsOnTarget],
+    ['Pass completion %', res.selfish.passAttempt ? Math.round(100 * res.selfish.passComplete / res.selfish.passAttempt) : 0,
+                          res.swarm.passAttempt ? Math.round(100 * res.swarm.passComplete / res.swarm.passAttempt) : 0],
+  ];
+  const x0 = 190, wMax = chart.width - x0 - 120, rh = chart.height / rows.length;
+  rows.forEach((r, i) => {
+    const y = i * rh + 8;
+    const max = Math.max(r[1], r[2], 1);
+    chx.fillStyle = '#93a89b'; chx.textAlign = 'right';
+    chx.fillText(r[0], x0 - 12, y + rh / 2 - 8);
+    chx.textAlign = 'left';
+    chx.fillStyle = '#e06a5a';
+    chx.fillRect(x0, y + 2, Math.max(2, wMax * r[1] / max), (rh - 20) / 2);
+    chx.fillStyle = '#e8f0ea'; chx.fillText(r[1] + '  selfish', x0 + Math.max(2, wMax * r[1] / max) + 8, y + 2 + (rh - 20) / 4);
+    chx.fillStyle = '#e3b341';
+    chx.fillRect(x0, y + 4 + (rh - 20) / 2, Math.max(2, wMax * r[2] / max), (rh - 20) / 2);
+    chx.fillStyle = '#e8f0ea'; chx.fillText(r[2] + '  swarm', x0 + Math.max(2, wMax * r[2] / max) + 8, y + 4 + (rh - 20) * 3 / 4);
+  });
+}
+
+$('benchBtn').onclick = () => {
+  const btn = $('benchBtn'), st = $('benchStatus');
+  btn.disabled = true;
+  const res = { selfish: null, swarm: null };
+  const jobs = [['selfish', [3, 4, 5]], ['swarm', [3, 4, 5]]];
+  let ji = 0, si = 0, acc = null;
+  function tick() {
+    const [mode, seeds] = jobs[ji];
+    const r = new Sim({
+      mode, seed: seeds[si], nPlayers: ui.nPlayers, kickNoise: ui.kickNoise,
+      vision: ui.vision, evap: ui.evap, defSkill: ui.defSkill,
+    }).runEpisodes(100);
+    if (!acc) acc = { goals: 0, shots: 0, shotsOnTarget: 0, passAttempt: 0, passComplete: 0 };
+    for (const k of Object.keys(acc)) acc[k] += r[k];
+    st.textContent = `running ${mode} seed ${seeds[si]}…`;
+    si++;
+    if (si >= seeds.length) { res[mode] = acc; acc = null; si = 0; ji++; }
+    if (ji < jobs.length) setTimeout(tick, 10);
+    else { st.textContent = `done — swarm ${res.swarm.goals} vs selfish ${res.selfish.goals} goals`; btn.disabled = false; drawChart(res); }
+  }
+  setTimeout(tick, 10);
+};
+
+frame();
+})();
+</script>
+</body>
+</html>
