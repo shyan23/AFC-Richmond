@@ -1,11 +1,11 @@
-# Shaolin Swarm Soccer
+# AFC Richmond
 
-**Swarm intelligence case study: ten individually weak players, coordinated by Boids + Ant Colony Optimization + Particle Swarm Optimization, outscore their selfish twins 17× against a superior defense.**
+**Swarm intelligence case study: ten ordinary players, coordinated by Boids + Ant Colony Optimization + Particle Swarm Optimization, outscore a more traditional, individually driven side 17× over the course of a regular Premier League-style season.**
 
 > Lab 04 — Artificial Intelligence · Population-Based Approach / Swarm Intelligence
 > Zero dependencies: one HTML file, one simulation module, one Node test suite.
 
-![Live playback — swarm mode with pheromone heatmap](playback.gif)
+![Live playback — swarm mode with pheromone heatmap](/Readme_stuff/playback.gif)
 
 *Live playback: gold attackers, red defenders, white ball with motion trail. The glowing overlay is the pheromone field — passing corridors the team has collectively learned.*
 
@@ -13,11 +13,11 @@
 
 ## 1. Problem Statement
 
-Can a team of deliberately handicapped agents beat a stronger opponent purely through **coordination structure**, with no improvement to any individual agent?
+Can a team of ordinary, individually limited players beat a stronger, well-organized opponent purely through **coordination structure**, with no improvement to any individual agent?
 
-Every attacker on Team Shaolin is worse than every defender on every axis that matters:
+Every attacker on AFC Richmond is worse than every defender on every axis that matters:
 
-| Attribute | Shaolin attacker | Defender |
+| Attribute | AFC Richmond attacker | Defender |
 |---|---|---|
 | Speed | 0.5 u/tick | **0.68 u/tick** |
 | Kick accuracy | error grows with distance: `σ = 0.011 · dist · noise` | — |
@@ -42,7 +42,7 @@ Aggregated over 3 seeds × 100 episodes: **swarm 17 goals, selfish 1** — a 17�
 
 The simulation enforces realistic ball rules: a kicker can never receive his own pass in flight, and recovering a loose ball counts as a dribble, not a completed pass.
 
-![Dashboard — live metrics and 300-episode benchmark](screenshot.png)
+![Dashboard — live metrics and 300-episode benchmark](Readme_stuff/screenshot.png)
 
 *Built-in benchmark (300 episodes per mode, same seeds as the test suite): goals 17 vs 1, shots 97 vs 17, shots on target 43 vs 8, pass completion 95% vs 0%.*
 

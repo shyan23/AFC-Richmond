@@ -2,7 +2,7 @@
 
 % ============================================================
 %  CSE 4101 — Lab 04: Population-Based Approach / Swarm Intelligence
-%  Shaolin Swarm Soccer — Boids + ACO + PSO vs a Selfish Baseline
+%  AFC Richmond — Boids + ACO + PSO vs a Selfish Baseline
 % ============================================================
 
 \usepackage[a4paper,margin=2.4cm]{geometry}
@@ -80,11 +80,11 @@
 {\large Lab Report 04 --- Population-Based Approach and Swarm Intelligence\par}
 \vspace{1.8cm}
 \rule{\linewidth}{0.8pt}\par\vspace{0.6cm}
-{\Huge\bfseries Shaolin Swarm Soccer\par}
+{\Huge\bfseries AFC Richmond\par}
 \vspace{0.4cm}
 {\Large Emergent Team Play from Boids, Ant Colony Optimization\\
 and Particle Swarm Optimization:\\[2mm]
-Ten Weak Agents versus a Stronger Defense\par}
+A Regular Premier League-Style Match\par}
 \vspace{0.6cm}
 \rule{\linewidth}{0.8pt}\par
 \vspace{2.0cm}
@@ -104,19 +104,19 @@ Ten Weak Agents versus a Stronger Defense\par}
 % ------------------------------------------------------------
 \begin{abstract}
 \noindent
-This report asks a single question: \emph{can coordination structure alone beat individual quality?}
-We build a deterministic, dependency-free soccer micro-world in which every attacker is
-deliberately worse than every defender --- slower, myopic, and increasingly inaccurate with kick
-distance --- and we run the \emph{same ten bodies} under two controllers. The \emph{selfish}
-baseline is individual optimization: chase the ball, dribble at goal, shoot when in range. The
-\emph{swarm} controller changes nothing about the players and everything about their coordination,
-combining three classic population-based mechanisms from the lecture: Boids flocking rules for
-off-ball shape (Reynolds, 1987), Ant Colony Optimization stigmergy for pass-lane selection
-(Dorigo, 1992), and Particle Swarm Optimization memory for positioning targets (Kennedy \&
-Eberhart, 1995). Aggregated over 3 seeds $\times$ 100 episodes, the swarm scores
-\textbf{17/300} goals against \textbf{1/300} for the selfish baseline --- a $17\times$
+This report asks a single question: \emph{can coordination structure alone beat individual quality in a regular Premier League match?}
+We build a deterministic, dependency-free soccer micro-world in which AFC Richmond's attackers are
+less individually dominant than the opposing defenders --- slower, myopic, and increasingly
+inaccurate with kick distance --- and we run the \emph{same ten bodies} under two controllers.
+The \emph{selfish} baseline is individual optimization: chase the ball, dribble at goal, shoot
+when in range. The \emph{swarm} controller changes nothing about the players and everything
+about their coordination, combining three classic population-based mechanisms from the lecture:
+Boids flocking rules for off-ball shape (Reynolds, 1987), Ant Colony Optimization stigmergy for
+pass-lane selection (Dorigo, 1992), and Particle Swarm Optimization memory for positioning
+targets (Kennedy \& Eberhart, 1995). Aggregated over 3 seeds $\times$ 100 episodes, the swarm
+scores \textbf{17/300} goals against \textbf{1/300} for the selfish baseline --- a $17\times$
 improvement with identical players --- while completing \textbf{95.3\%} of its passes. Parameter
-sweeps show the swarm's advantage is robust: it widens as kick noise grows, survives strong
+sweeps show the swarm's advantage is robust: it widens as kick noise grows, survives well-organized
 defenses, and appears only above a critical team size, exactly as swarm-intelligence theory
 predicts. The system is reproducible end-to-end: a seeded RNG makes every claim a runnable
 assertion in a Node test suite.
@@ -133,13 +133,13 @@ assertion in a Node test suite.
 Lecture S09 closes with a provocative idea: \emph{simple individuals following simple rules can
 produce intelligent group-level behaviour}, with no central controller --- ants find shortest
 paths, birds flock, fish school. The claim is easy to state and easy to believe in the abstract.
-This lab makes it \emph{falsifiable}. We construct an adversarial environment in which the claim
-must either show up in a scoreboard or fail publicly.
+This lab makes it \emph{falsifiable}. We frame it as a regular match in which AFC Richmond must
+use structure and timing to create chances against a well-organized Premier League defense.
 
-The vehicle is a soccer micro-world inspired by the film \emph{Shaolin Soccer}: a team of
-individually hopeless players who win only when they play as one organism. Our attackers are
-handicapped on every axis that matters --- speed, accuracy, vision --- against an organized,
-faster defense with a goalkeeper. We then run \emph{exactly the same bodies} under two
+The vehicle is a soccer micro-world framed as a regular Premier League fixture: AFC Richmond's
+attackers are ordinary players who win only when they play as one organism. Our attackers are
+handicapped on every axis that matters --- speed, accuracy, vision --- against a well-organized
+league defense with a goalkeeper. We then run \emph{exactly the same bodies} under two
 controllers and count goals:
 
 \begin{itemize}[itemsep=2pt]
@@ -156,7 +156,7 @@ Because the two conditions share every physical parameter and every random seed,
 in outcome is attributable to coordination structure alone. This is the controlled experiment the
 lecture's slogan deserves.
 
-\paragraph{Contributions.} (i) A formal problem framing of ``weak individuals vs.\ strong
+\paragraph{Contributions.} (i) A formal problem framing of ``ordinary players vs.\ a well-organized
 defense'' with explicit asymmetry parameters (\S\ref{sec:problem}); (ii) a single controller that
 integrates Boids, ACO and PSO, each mapped to a distinct sub-decision of the team
 (\S\ref{sec:method}); (iii) a deterministic, zero-dependency implementation with an assert-based
@@ -305,8 +305,8 @@ completed passes deposit trail, goals reinforce it, evaporation fades it.}
 
 \subsection{The asymmetry: every attacker worse than every defender}
 
-The experiment is only meaningful if the individuals are genuinely inferior, so the handicaps are
-explicit and severe (Table~\ref{tab:asym}).
+The experiment is only meaningful if AFC Richmond's individuals are meaningfully less dominant than
+the opposition, so the handicaps are explicit and realistic (Table~\ref{tab:asym}).
 
 \begin{table}[H]
 \centering
@@ -315,7 +315,7 @@ explicit and severe (Table~\ref{tab:asym}).
 \small
 \begin{tabular}{@{}llll@{}}
 \toprule
-\textbf{Attribute} & \textbf{Shaolin attacker} & \textbf{Defender} & \textbf{Ratio}\\
+\textbf{Attribute} & \textbf{AFC Richmond attacker} & \textbf{Defender} & \textbf{Ratio}\\
 \midrule
 Top speed & $0.5$ u/tick ($0.38$ dribbling) & $0.68$ u/tick & $0.74\times$\\
 Kick accuracy & $\sigma \propto$ distance, Eq.~\eqref{eq:sigma} & --- & ---\\

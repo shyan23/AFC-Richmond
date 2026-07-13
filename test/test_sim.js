@@ -1,7 +1,8 @@
 // node test_sim.js — smallest checks that fail if the thesis breaks.
 'use strict';
 const assert = require('assert');
-const { Sim, kickSigma } = require('./sim.js');
+const { Sim, kickSigma } = require('../sim.js');
+const { chooseHolderAction, computeOffBallForce } = require('../src/controllers.js');
 
 // 1. physics premise: aim error grows with distance
 assert(kickSigma(25, 1) > kickSigma(8, 1) * 2, 'kick error must grow with distance');
